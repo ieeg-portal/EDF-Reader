@@ -147,6 +147,8 @@ classdef EDFData < handle
             obj.baseScale(ii) = 1e3;
           case {'uv' 'microvolt' 'microvolts'}
             obj.baseScale(ii) = 1;
+          case {'s' 'seconds' 'second'}
+            obj.baseScale(ii) = 1;
           otherwise
             unknownbaseScale = true;
             obj.baseScale(ii) = 1; 
@@ -186,6 +188,12 @@ classdef EDFData < handle
         obj.dataPointer = memmapfile(fileName, ...
           'Offset',obj.dataOffset, ...
           'Format', memFormat);  
+          
+        % Check size is the same as nrRecords
+        if size(obj.dataPointer.Data,1) ~= obj.records
+          warning('Nr records in header is not same as found');
+          obj.records = size(obj.dataPointer.Data,1);
+        end
       end
      
     end
@@ -293,7 +301,7 @@ classdef EDFData < handle
       %     i.e. 
       %     allLabels = {OBJ.label}
       %     altNames = {'Ch1' 'Ch2' 'Ch3'}
-      %     altNamesStruct = cell2struct(allLabels,altNames,2)
+      %     altNamesStruct = cell2struct(altNames, allLabels, 2)
       %
       %   SUCCESS = CONVERT2MEF(OBJ, 'noDC', ...) omits the EDF DC-offset
       %   in the conversion,
