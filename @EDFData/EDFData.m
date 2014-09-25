@@ -284,7 +284,9 @@ classdef EDFData < handle
       %
       %   SUCCESS = CONVERT2MEF(OBJ) converts data stored in the EDF files
       %   represented by OBJ to MEF files. MEF stores data as one file per
-      %   channel and uses lossless compression to minimize filesize. 
+      %   channel and uses lossless compression to minimize filesize. The
+      %   timestamps are copied from the EDF files unless an optional
+      %   'startTime' is provided.
       %
       %   OBJ can be a single EDFDATA object or an array of EDFDATA object
       %   in case the data in the various EDF-files should be concatenated.
@@ -306,6 +308,15 @@ classdef EDFData < handle
       %   SUCCESS = CONVERT2MEF(OBJ, 'noDC', ...) omits the EDF DC-offset
       %   in the conversion,
       %
+      %   SUCCESS = CONVERT2MEF(OBJ, 'startTime', STARTTIME) sets the
+      %   timestamp of the first sample of the MEF file to STARTTIME, where
+      %   STARTTIME is a string containing the time in the format:
+      %   "hh:mm:ss". and uses a 24 hour clock. In this case, the date will
+      %   be set to 1-1-2000.
+      %
+      %   SUCCESS = CONVERT2MEF(OBJ, 'startDate', STARTDATE) sets the
+      %   timestamp of the date 
+      %
       %   SUCCESS = CONVERT2MEF(OBJ, 'outputFolder', PATH) saves the MEF
       %   files to the folder specified in PATH. If the folder does not
       %   exist, it will be created.
@@ -323,6 +334,7 @@ classdef EDFData < handle
       useAltLabels = false;
       outputFolder = ''; %Current folder
       curIdx = 1;
+      timeOffset = 0;
       if nargin > 1
         while curIdx <= length(varargin)
           assert(ischar(varargin{curIdx}), ...
@@ -358,6 +370,17 @@ classdef EDFData < handle
 
               useAltLabels = true;
               curIdx = curIdx + 2;
+            case 'startTime'
+              assert(ischar(varargin{curIdx+1}),...
+                '''startTime'' parameter must be of type string (hh:mm:ss)');
+              try 
+                % Get time offset in micro-seconds.
+                timeOffset = str2double(regexp(s,':','split'))*[3600 60 1]'*1e6;
+              catch
+                error('''StartTime'' parameter must be in format ''hh:mm:ss''');
+              end
+              curIdx = curIdx + 2;
+
             otherwise
              error('Incorrect attribute name');
           end
@@ -380,11 +403,15 @@ classdef EDFData < handle
         allStartTimes(iObject) = 1e3*EDFData.datetime2utc(tmpObject.startDate(3),...
             tmpObject.startDate(2),tmpObject.startDate(1), tmpObject.startTime(1),...
             tmpObject.startTime(2),tmpObject.startTime(3));
-      end
+      end      
       
       % sort concatObjects by StartTime.
       [allStartTimes, sortIx] = sort(allStartTimes);
       obj = obj(sortIx);
+      
+      % Set offsets for startTimes in case offsetTime is provided.
+      firstObjOffset = allStartTimes(1) - 946684800000 + timeOffset;
+      allStartTimes = allStartTimes - firstObjOffset;
       
       % Iterate over all unique labels
       for iLabel = 1: length(allLabels)
