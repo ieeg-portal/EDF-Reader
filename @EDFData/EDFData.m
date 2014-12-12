@@ -375,7 +375,7 @@ classdef EDFData < handle
                 '''startTime'' parameter must be of type string (hh:mm:ss)');
               try 
                 % Get time offset in micro-seconds.
-                timeOffset = str2double(regexp(s,':','split'))*[3600 60 1]'*1e6;
+                timeOffset = str2double(regexp(varargin{curIdx+1},':','split'))*[3600 60 1]'*1e6;
               catch
                 error('''StartTime'' parameter must be in format ''hh:mm:ss''');
               end
